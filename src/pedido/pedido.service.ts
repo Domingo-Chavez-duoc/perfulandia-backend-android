@@ -1,18 +1,35 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { CreatePedidoDto } from './dto/create-pedido.dto';
 import { UpdatePedidoDto } from './dto/update-pedido.dto';
 import { Pedido, PedidoDocument } from './schemas/pedido.schema';
-
+import { ClienteProfileService } from '../cliente-profile/cliente-profile.service';
 @Injectable()
 export class PedidoService {
   constructor(
     @InjectModel(Pedido.name) private pedidoModel: Model<PedidoDocument>,
-  ) {}
+    private clienteProfileService: ClienteProfileService) {}
 
-  async create(createPedidoDto: CreatePedidoDto): Promise<Pedido> {
-    const nuevoPedido = await this.pedidoModel.create(createPedidoDto);
+  async create(createPedidoDto: CreatePedidoDto, userId: string): Promise<Pedido> {
+    let clienteId: string;
+
+    // 1. Determinar el cliente
+    if (createPedidoDto.cliente) {
+      // Si se especificó un cliente (caso ADMIN), usarlo directamente
+      clienteId = createPedidoDto.cliente;
+    } else {
+      // Si no, buscar el ClienteProfile del usuario autenticado
+      const clienteProfile = await this.clienteProfileService.findByUserId(userId);
+      clienteId = (clienteProfile as any)._id.toString();
+    }
+
+    // 2. Crear el pedido
+    const nuevoPedido = await this.pedidoModel.create({
+      ...createPedidoDto,
+      cliente: new Types.ObjectId(clienteId),
+    });
+
     return nuevoPedido;
   }
 

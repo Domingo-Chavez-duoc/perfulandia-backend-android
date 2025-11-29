@@ -1,36 +1,57 @@
-import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsNotEmpty, IsArray, IsNumber, Min, IsOptional, IsString, IsEnum, ValidateNested } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 
-export class CreatePedidoDto {
+export class PedidoItemDto {
   @ApiProperty({
-    example: 'Nombre del Pedido',
-    description: 'Nombre del Pedido',
+    example: '507f1f77bcf86cd799439011',
+    description: 'ID del Producto',
   })
   @IsNotEmpty()
   @IsString()
-  nombre: string;
+  producto: string;
 
+  @ApiProperty({
+    example: 2,
+    description: 'Cantidad de productos',
+  })
+  @IsNotEmpty()
+  @IsNumber()
+  @Min(1)
+  cantidad: number;
+}
+
+export class CreatePedidoDto {
   @ApiPropertyOptional({
-    example: 'Descripción del Pedido',
-    description: 'Descripción opcional',
+    example: '507f1f77bcf86cd799439011',
+    description: 'ID del ClienteProfile (opcional, solo para ADMIN. Si no se especifica, se usa el perfil del usuario autenticado)',
   })
   @IsOptional()
   @IsString()
-  descripcion?: string;
+  cliente?: string;
+
+  @ApiProperty({
+    type: [PedidoItemDto],
+    description: 'Items del pedido',
+  })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => PedidoItemDto)
+  items: PedidoItemDto[];
 
   @ApiPropertyOptional({
-    example: 'https://example.com/imagen.jpg',
-    description: 'URL de la imagen',
+    example: 'Calle 123, Depto 4B',
+    description: 'Dirección de entrega',
   })
   @IsOptional()
   @IsString()
-  imagen?: string;
+  direccionEntrega?: string;
 
   @ApiPropertyOptional({
-    example: 'https://example.com/thumbnail.jpg',
-    description: 'URL del thumbnail',
+    example: 'Tocar el timbre',
+    description: 'Notas para la entrega',
   })
   @IsOptional()
   @IsString()
-  imagenThumbnail?: string;
+  notasEntrega?: string;
 }

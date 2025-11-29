@@ -4,7 +4,7 @@ import { PedidoService } from './pedido.service';
 import { PedidoController } from './pedido.controller';
 import { UploadModule } from '../upload/upload.module';
 import { Pedido, PedidoSchema } from './schemas/pedido.schema';
-
+import { ClienteProfileModule } from '../cliente-profile/cliente-profile.module';
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: Pedido.name, schema: PedidoSchema }]),
