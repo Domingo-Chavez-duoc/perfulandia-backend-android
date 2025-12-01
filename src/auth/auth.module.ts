@@ -11,6 +11,7 @@ import { RolesGuard } from './guards/roles.guard';
 import { User, UserSchema } from './schemas/user.schema';
 import { APP_GUARD } from '@nestjs/core';
 import { ClienteProfileModule } from '../cliente-profile/cliente-profile.module';
+import { UploadModule } from '../upload/upload.module';
 
 @Module({
   imports: [
@@ -29,6 +30,9 @@ import { ClienteProfileModule } from '../cliente-profile/cliente-profile.module'
       }),
     }),
     ClienteProfileModule,
+
+    UploadModule,
+    
   ],
   controllers: [AuthController],
   providers: [
