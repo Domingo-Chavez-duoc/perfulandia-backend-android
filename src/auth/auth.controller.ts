@@ -1,4 +1,4 @@
-import {
+import { 
   Controller,
   Post,
   Get,
@@ -6,8 +6,14 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
+  Req,
+  BadRequestException,
+  ParseFilePipe,
+  FileTypeValidator
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody, ApiConsumes } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
@@ -18,6 +24,7 @@ import { Roles } from './decorators/roles.decorator';
 import { Role } from './enums/roles.enum';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @ApiTags('Autenticación')
 @Controller('auth')
@@ -83,4 +90,38 @@ export class AuthController {
       data: users,
     };
   }
+
+  @Post('avatar')
+  @UseGuards(JwtAuthGuard) 
+  @UseInterceptors(FileInterceptor('file')) 
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Subir o actualizar mi avatar' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: { file: { type: 'string', format: 'binary' } },
+    },
+  })
+  async uploadMyAvatar(
+    @CurrentUser() user: any, // Obtenemos el usuario del token
+    @UploadedFile(
+      // Validador para asegurar que es una imagen
+      new ParseFilePipe({
+        validators: [new FileTypeValidator({ fileType: 'image' })],
+      }),
+    ) file: Express.Multer.File, // Inyectamos el archivo subido
+  ) {
+    if (!file) {
+      throw new BadRequestException('No se proporcionó ningún archivo de imagen.');
+    }
+    // El controlador solo pasa el trabajo al servicio
+    const updatedUser = await this.authService.updateAvatar(user.userId, file);
+    return {
+      success: true,
+      message: 'Avatar actualizado exitosamente',
+      data: updatedUser,
+    };
+  }
 }
+

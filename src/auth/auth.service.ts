@@ -1,4 +1,12 @@
-import { Injectable, UnauthorizedException, ConflictException, OnModuleInit } from '@nestjs/common';
+import { 
+  Injectable, 
+  UnauthorizedException, 
+  ConflictException, 
+  OnModuleInit,
+  Inject, 
+  forwardRef, 
+  NotFoundException 
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { JwtService } from '@nestjs/jwt';
@@ -8,6 +16,7 @@ import { RegisterDto } from './dto/register.dto';
 import { Role } from './enums/roles.enum';
 import { User, UserDocument } from './schemas/user.schema';
 import { ClienteProfileService } from '../cliente-profile/cliente-profile.service';
+import { UploadService } from '../upload/upload.service';
 
 @Injectable()
 export class AuthService implements OnModuleInit {
@@ -15,6 +24,9 @@ export class AuthService implements OnModuleInit {
     @InjectModel(User.name) private userModel: Model<UserDocument>,
     private jwtService: JwtService,
     private clienteProfileService: ClienteProfileService,
+
+    @Inject(forwardRef(() => UploadService))
+    private readonly uploadService: UploadService,
   ) {}
 
   async onModuleInit() {
@@ -127,5 +139,29 @@ export class AuthService implements OnModuleInit {
   async getAllUsers() {
     const users = await this.userModel.find().select('-password');
     return users;
+  }
+
+  /**
+   * Sube una imagen, la asocia al usuario y devuelve el usuario actualizado.
+   * @param userId - El ID del usuario que está actualizando su avatar.
+   * @param file - El archivo de imagen subido.
+   * @returns El objeto User actualizado sin la contraseña.
+   */
+  async updateAvatar(userId: string, file: Express.Multer.File): Promise<User> {
+    // Primero, sube la imagen usando el servicio de upload
+    const uploadResult = await this.uploadService.uploadImage(file);
+
+    // Luego, actualiza el documento del usuario en la base de datos con la nueva URL del avatar
+    const updatedUser = await this.userModel.findByIdAndUpdate(
+      userId,
+      { $set: { avatar: uploadResult.url } }, // Actualiza el campo 'avatar'
+      { new: true }, // Esta opción hace que devuelva el documento ya actualizado
+    ).select('-password'); // Crucial: Nunca devolver la contraseña
+
+    if (!updatedUser) {
+      throw new NotFoundException('Usuario no encontrado al intentar actualizar el avatar.');
+    }
+
+    return updatedUser;
   }
 }

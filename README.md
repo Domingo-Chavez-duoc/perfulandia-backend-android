@@ -1,7 +1,5 @@
 # Perfulandia API
 
-probando cambio
-
 ## Descripción
 
 Cliente simple de tienda de perfumes
